@@ -26,6 +26,8 @@ class Settings(BaseModel):
     exchange_provider: str = "searchapi"
     exchange_base_url: str = "https://www.searchapi.io/api/v1/search"
 
+    admin_enabled: bool = False
+
     def safe_summary(self) -> dict[str, object]:
         """Return a non-sensitive summary suitable for logs and smoke output."""
         return {
@@ -100,4 +102,6 @@ def load_settings_from_env() -> Settings:
         fallback_model=os.environ.get("FALLBACK_MODEL", "gpt-5.1"),
         exchange_provider=exchange_provider or "searchapi",
         exchange_base_url=os.environ.get("EXCHANGE_BASE_URL", "https://www.searchapi.io/api/v1/search"),
+        admin_enabled=os.environ.get("ADMIN_ENABLED", "").strip().lower() in ("true", "1", "yes")
+            or os.environ.get("APP_ENV", "local") == "local",
     )

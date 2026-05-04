@@ -40,9 +40,12 @@ _TABLE_FILES: dict[CsvTable, str] = {
 # ── Dependency: only available in local env ───────────────────────────────────
 
 def require_local_env() -> None:
-    """Dependency that blocks access when APP_ENV != 'local'."""
+    """Dependency that blocks access when admin is not enabled.
+
+    Admin is enabled when APP_ENV=local (automatic) or ADMIN_ENABLED=true (explicit).
+    """
     settings = load_settings_from_env()
-    if settings.app_env != "local":
+    if not settings.admin_enabled:
         raise HTTPException(
             status_code=403,
             detail={"error": "Admin endpoints are only available in the local environment."},

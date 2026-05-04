@@ -161,7 +161,7 @@ export default function CsvBrowser() {
       )}
 
       <p className="text-[10px] text-subtle">
-        Somente disponível em modo local (APP_ENV=local).
+        Dados do ambiente de execução atual.
       </p>
     </aside>
   );
