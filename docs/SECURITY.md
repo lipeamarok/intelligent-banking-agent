@@ -1,34 +1,34 @@
-# Security
+# Segurança
 
-## 1. Scope
+## 1. Escopo
 
-This document describes the security controls applied in Banco Ágil for the published V1.
+Este documento descreve os controles de segurança aplicados no Banco Ágil para a V1 publicada.
 
-Covered areas:
+Áreas cobertas:
 
-* Authentication boundary and flow protection
-* Secret management
-* CSV persistence safety
-* HTTP response safety
-* Known session limitations in V1
+* Fronteira de autenticação e proteção de fluxo
+* Gerenciamento de segredos
+* Segurança na persistência em CSV
+* Segurança nas respostas HTTP
+* Limitações conhecidas de sessão na V1
 
 ---
 
-## 2. Deterministic Boundary vs LLM
+## 2. Fronteira Determinística vs LLM
 
-Core rule:
+Regra principal:
 
-* The LLM does not decide authentication, credit approval, score calculation, persistence, or critical state transitions.
+* A LLM não decide autenticação, aprovação de crédito, cálculo de score, persistência ou transições críticas de estado.
 
-Controls in place:
+Controles aplicados:
 
-* Authentication handled by a deterministic service
-* Credit decisions handled by a deterministic service
-* Persistence only through repositories
-* Routing driven by structured state, not by free-form model output
-* Intent output validated against an allowed enum before use
+* Autenticação tratada por serviço determinístico
+* Decisões de crédito tratadas por serviço determinístico
+* Persistência exclusivamente via repositories
+* Roteamento guiado por estado estruturado, não por saída livre do modelo
+* Saída de intent validada contra enum permitido antes de qualquer uso
 
-References:
+Referências:
 
 * [ARCHITECTURE.md](ARCHITECTURE.md)
 * [STATE_MACHINE.md](STATE_MACHINE.md)
@@ -36,111 +36,111 @@ References:
 
 ---
 
-## 3. Secrets and Sensitive Configuration
+## 3. Segredos e Configuração Sensível
 
-Key sensitive variables:
+Variáveis sensíveis principais:
 
 * `XAI_API_KEY`
 * `OPENAI_API_KEY`
 * `EXCHANGE_API_KEY`
-* `SEARCHAPI_API_KEY` (optional)
-* `SERPAPI_API_KEY` (optional)
+* `SEARCHAPI_API_KEY` (opcional)
+* `SERPAPI_API_KEY` (opcional)
 
-Rules:
+Regras:
 
-* Secrets must be loaded from environment variables only
-* No secret may be committed to the repository
-* Canonical xAI key name is `XAI_API_KEY` — do not use `GROK_API_KEY`
-* Logs must sanitize key patterns and `Authorization` header values
+* Segredos devem ser carregados exclusivamente via variáveis de ambiente
+* Nenhum segredo pode ser commitado no repositório
+* O nome canônico da chave xAI é `XAI_API_KEY` — não usar `GROK_API_KEY`
+* Logs devem sanitizar padrões de chave e valores do header `Authorization`
 
-References:
+Referências:
 
 * [README.md](../README.md)
 * [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
-## 4. Session Security in V1
+## 4. Segurança de Sessão na V1
 
-Current model:
+Modelo atual:
 
-* Session stored in process memory (`MemorySaver` + `SessionService`)
-* No active TTL expiration on the backend in V1
-* Process restart invalidates all existing sessions
+* Sessão armazenada em memória de processo (`MemorySaver` + `SessionService`)
+* Sem expiração por TTL ativa no backend na V1
+* Reinício do processo invalida todas as sessões existentes
 
-API behavior:
+Comportamento da API:
 
-* A non-existent session returns `SESSION_NOT_FOUND`
-* The frontend must create or reset the session when required
+* Sessão inexistente retorna `SESSION_NOT_FOUND`
+* O frontend deve criar ou resetar a sessão quando necessário
 
-Known residual risk:
+Risco residual conhecido:
 
-* V1 does not implement inactivity-based expiration
-* TTL is reserved for a post-V1 release
+* A V1 não implementa expiração por inatividade
+* TTL está reservado para uma versão pós-V1
 
 ---
 
-## 5. Admin Endpoints
+## 5. Endpoints Administrativos
 
 Endpoints:
 
 * `GET /api/v1/admin/csv/{table}`
 * `POST /api/v1/admin/csv/reset`
 
-Controls:
+Controles:
 
-* Available only when `APP_ENV=local`
-* Any other environment returns `HTTP 403`
-* Purpose: local inspection and reset of CSV data during development
-
----
-
-## 6. CSV Persistence and Integrity
-
-Rules:
-
-* Services do not write CSV files directly
-* Repositories concentrate all read/write access
-* Writes must use a safe strategy with error handling
-* Failures must be controlled and must not leak internal details in the API response
-
-Goals:
-
-* Reduce corruption risk and unintended access
-* Maintain a clear boundary between domain logic and persistence
+* Disponíveis apenas quando `APP_ENV=local`
+* Qualquer outro ambiente retorna `HTTP 403`
+* Finalidade: inspeção local e reset de dados CSV durante o desenvolvimento
 
 ---
 
-## 7. Response Safety and Observability
+## 6. Persistência em CSV e Integridade
 
-Public API responses must not expose:
+Regras:
 
-* Full `GraphState` contents
-* Authenticated CPF
-* `current_customer` object
+* Services não escrevem arquivos CSV diretamente
+* Repositories concentram todo acesso de leitura e escrita
+* Escritas devem usar estratégia segura com tratamento de erros
+* Falhas devem ser controladas e não vazar detalhes internos na resposta da API
+
+Objetivos:
+
+* Reduzir risco de corrupção e acesso não intencional
+* Manter fronteira clara entre lógica de domínio e persistência
+
+---
+
+## 7. Segurança nas Respostas e Observabilidade
+
+As respostas públicas da API não devem expor:
+
+* Conteúdo completo do `GraphState`
+* CPF autenticado
+* Objeto `current_customer`
 * Stack traces
-* Provider secrets or configuration
+* Segredos ou configurações de provider
 
-Observability:
+Observabilidade:
 
-* `trace_id` included in all responses for support correlation
-* Internal logs may contain technical detail but must sanitize sensitive values
-
----
-
-## 8. Pre-Publication Checklist
-
-Before making the repository public:
-
-* Confirm `.env` is in `.gitignore`
-* Confirm `.env.example` contains no real secrets
-* Confirm admin endpoints return `403` outside local environment
-* Confirm no hardcoded keys in backend or frontend source
-* Confirm core docs are aligned with actual V1 session behavior
+* `trace_id` incluído em todas as respostas para correlação de suporte
+* Logs internos podem conter detalhes técnicos, mas devem sanitizar valores sensíveis
 
 ---
 
-## 9. References
+## 8. Checklist Pré-Publicação
+
+Antes de tornar o repositório público:
+
+* Confirmar que `.env` está no `.gitignore`
+* Confirmar que `.env.example` não contém segredos reais
+* Confirmar que endpoints admin retornam `403` fora do ambiente local
+* Confirmar ausência de chaves hardcoded no backend ou frontend
+* Confirmar que os documentos principais estão alinhados com o comportamento real da sessão na V1
+
+---
+
+## 9. Referências
 
 * [README.md](../README.md)
 * [ARCHITECTURE.md](ARCHITECTURE.md)
