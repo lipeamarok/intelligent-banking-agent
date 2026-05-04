@@ -990,14 +990,23 @@ Every valid request must be persisted with final status `aprovado` or `rejeitado
 The score must be calculated using this formula:
 
 ```txt
-income_score     = min(renda_mensal / (despesas_fixas_mensais + 1), 20.0) * 25.0
-raw_score        = income_score + peso_emprego + peso_dependentes + peso_dividas
-score            = max(0, min(1000, round(raw_score)))
+income_available        = max(renda_mensal - despesas_fixas_mensais, 0)
+income_capacity_score   = min(income_available / 10_000, 1) * 300
+income_efficiency_score = min(renda_mensal / (despesas_fixas_mensais + 1), 20) / 20 * 200
+raw_score               = income_capacity_score + income_efficiency_score
+                          + peso_emprego + peso_dependentes + peso_dividas
+score                   = max(0, min(1000, round(raw_score)))
 ```
 
-The income component is capped at `20.0 * 25.0 = 500` to prevent a very high
-income ratio from dominating the score. Division-by-zero is prevented by using
-`despesas_fixas_mensais + 1` as the denominator.
+The income component is split into two parts:
+- **Absolute capacity** (`income_capacity_score`, up to 300): rewards high disposable income,
+  saturating at R$ 10,000 of available income.
+- **Relative efficiency** (`income_efficiency_score`, up to 200): rewards a favorable
+  income-to-expenses ratio, saturating when `renda / (despesas + 1) ≥ 20`.
+
+This prevents a moderate income with very low expenses from outscoring a profile
+with significantly higher absolute financial capacity. Division-by-zero is prevented
+by using `despesas_fixas_mensais + 1` as the denominator.
 
 ### BR-SCORE-002
 
@@ -1005,8 +1014,8 @@ Employment weights:
 
 | Employment Type | Weight |
 | --------------- | -----: |
-| formal          |    300 |
-| autonomo        |    200 |
+| formal          |    250 |
+| autonomo        |    180 |
 | desempregado    |      0 |
 
 ### BR-SCORE-003
@@ -1026,8 +1035,8 @@ Debt weights:
 
 | Has Active Debts | Weight |
 | ---------------- | -----: |
-| true             |   -100 |
-| false            |    100 |
+| true             |   -150 |
+| false            |    150 |
 
 ### BR-SCORE-005
 

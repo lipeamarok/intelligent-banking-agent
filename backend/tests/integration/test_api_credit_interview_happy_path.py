@@ -179,9 +179,9 @@ def test_post_interview_ok_reassesses_same_request(tmp_path: Path) -> None:
     _chat(client, "quero aumentar meu limite", sid)
     _chat(client, "20000", sid)
     _chat(client, "sim", sid)  # accept interview
-    _chat(client, "12000", sid)
+    _chat(client, "2000", sid)
     _chat(client, "formal", sid)
-    _chat(client, "3000", sid)
+    _chat(client, "1000", sid)
     _chat(client, "nenhum", sid)
     _chat(client, "não", sid)
     reassessed = _chat(client, "ok", sid)

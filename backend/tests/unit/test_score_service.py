@@ -4,14 +4,16 @@ Unit tests for ScoreService.
 Source of truth: REQUIREMENTS.md FR-INTERVIEW-007, TEST_PLAN.md section 6.4.
 
 Score formula contract (score_service.py docstring):
-    income_score     = min(renda_mensal / (despesas_fixas_mensais + 1), 20.0) * 25.0
-    employment_score = {formal: 300, autonomo: 200, desempregado: 0}
-    dependents_score = {0: 100, 1: 80, 2: 60, >=3: 30}
-    debt_score       = -100 if tem_dividas_ativas else +100
-    raw_score        = income_score + employment_score + dependents_score + debt_score
-    final_score      = max(0, min(1000, round(raw_score)))
+    income_available        = max(renda_mensal - despesas_fixas_mensais, 0)
+    income_capacity_score   = min(income_available / 10_000, 1) * 300       # up to 300
+    income_efficiency_score = min(renda / (despesas + 1), 20) / 20 * 200   # up to 200
+    employment_score        = {formal: 250, autonomo: 180, desempregado: 0}
+    dependents_score        = {0: 100, 1: 80, 2: 60, >=3: 30}
+    debt_score              = -150 if tem_dividas_ativas else +150
+    raw_score  = capacity + efficiency + employment + dependents + debt
+    final_score = max(0, min(1000, round(raw_score)))
 
-With income=0, expenses=0 → income_score = 0.
+With income=0, expenses=0 → capacity=0, efficiency=0.
 These base inputs isolate each weight independently.
 """
 
@@ -71,10 +73,10 @@ def test_score_is_always_within_bounds():
 
 # ── Employment weights (TC-SCORE-002) ─────────────────────────────────────────
 # Isolated using income=0, expenses=0, 0 dependents, no debts.
-# income_score = 0, dependents_score = 100, debt_score = 100
-# formal:      0 + 300 + 100 + 100 = 500
-# autonomo:    0 + 200 + 100 + 100 = 400
-# desempregado:0 +   0 + 100 + 100 = 200
+# capacity=0, efficiency=0, dependents=100, debt=+150
+# formal:      0 + 0 + 250 + 100 + 150 = 500
+# autonomo:    0 + 0 + 180 + 100 + 150 = 430
+# desempregado:0 + 0 +   0 + 100 + 150 = 250
 
 
 def test_employment_formal_weight():
@@ -88,14 +90,14 @@ def test_employment_autonomo_weight():
     result = ScoreService.calculate(
         make_interview(tipo_emprego=EmploymentType.AUTONOMO)
     )
-    assert result.score == 400
+    assert result.score == 430
 
 
 def test_employment_desempregado_weight():
     result = ScoreService.calculate(
         make_interview(tipo_emprego=EmploymentType.DESEMPREGADO)
     )
-    assert result.score == 200
+    assert result.score == 250
 
 
 def test_formal_score_greater_than_autonomo():
@@ -113,8 +115,8 @@ def test_autonomo_score_greater_than_desempregado():
 
 # ── Dependents weights (TC-SCORE-003) ─────────────────────────────────────────
 # Isolated using income=0, expenses=0, formal, no debts.
-# formal + no debts baseline: 0 + 300 + dep + 100
-# dep 0: 300+100+100=500, dep 1: 300+80+100=480, dep 2: 300+60+100=460, dep 3+: 300+30+100=430
+# capacity=0, efficiency=0, formal=250, debt=+150
+# dep 0: 250+100+150=500, dep 1: 250+80+150=480, dep 2: 250+60+150=460, dep 3+: 250+30+150=430
 
 
 def test_dependents_zero_weight():
@@ -158,7 +160,7 @@ def test_dependents_four_uses_three_plus_bucket():
 
 # ── Debt weights (TC-SCORE-004) ───────────────────────────────────────────────
 # Isolated using income=0, expenses=0, formal, 0 dependents.
-# no_debt: 0+300+100+100=500, has_debt: 0+300+100-100=300 → diff=200
+# no_debt: 0+0+250+100+150=500, has_debt: 0+0+250+100-150=200 → diff=300
 
 
 def test_debt_false_weight():
@@ -172,18 +174,18 @@ def test_debt_true_weight():
     result = ScoreService.calculate(
         make_interview(tipo_emprego=EmploymentType.FORMAL, tem_dividas_ativas=True)
     )
-    assert result.score == 300
+    assert result.score == 200
 
 
-def test_debt_difference_is_200():
-    """Debt penalty is -100 vs +100 = net 200 point difference (TC-SCORE-004)."""
+def test_debt_difference_is_300():
+    """Debt penalty is -150 vs +150 = net 300 point difference (TC-SCORE-004)."""
     no_debt = ScoreService.calculate(
         make_interview(tipo_emprego=EmploymentType.FORMAL, tem_dividas_ativas=False)
     )
     has_debt = ScoreService.calculate(
         make_interview(tipo_emprego=EmploymentType.FORMAL, tem_dividas_ativas=True)
     )
-    assert no_debt.score - has_debt.score == 200
+    assert no_debt.score - has_debt.score == 300
 
 
 # ── Division by zero (TC-SCORE-005) ──────────────────────────────────────────
@@ -218,8 +220,8 @@ def test_no_division_by_zero_all_zeros():
 def test_score_clipped_at_1000():
     """TC-SCORE-006: inputs that would exceed 1000 must be clipped to 1000."""
     # Very high income, best employment, no dependents, no debts
-    # income_score = min(1_000_000 / 1, 20) * 25 = 500
-    # 500 + 300 + 100 + 100 = 1000 — exactly at cap
+    # capacity=300, efficiency=200, employment=250, dependents=100, debt=150
+    # 300 + 200 + 250 + 100 + 150 = 1000 — exactly at cap
     data = make_interview(
         renda_mensal=1_000_000.0,
         tipo_emprego=EmploymentType.FORMAL,
@@ -234,7 +236,7 @@ def test_score_clipped_at_1000():
 def test_score_clipped_at_zero():
     """TC-SCORE-007: inputs producing raw negative score must be clipped to 0."""
     # income=0, desempregado, 3+ dependents, has_debts
-    # 0 + 0 + 30 - 100 = -70 → clipped to 0
+    # 0 + 0 + 0 + 30 - 150 = -120 → clipped to 0
     data = make_interview(
         renda_mensal=0.0,
         tipo_emprego=EmploymentType.DESEMPREGADO,
@@ -273,8 +275,9 @@ def test_score_deterministic_same_inputs_same_output():
 def test_score_for_documented_example():
     """
     TC-SCORE-001: income=5000, expenses=2500, formal, 0 dep, no debts.
-    income_score = min(5000/2501, 20)*25 = min(1.9992, 20)*25 ≈ 49.98 → ~49
-    total ≈ 49 + 300 + 100 + 100 = 549 → round = 550
+    capacity  = min(2500/10000, 1)*300 = 75
+    efficiency = min(5000/2501, 20)/20*200 ≈ 19.99
+    total ≈ 75 + 20 + 250 + 100 + 150 = 595
     """
     data = make_interview(
         renda_mensal=5000.0,
@@ -285,4 +288,4 @@ def test_score_for_documented_example():
     )
     result = ScoreService.calculate(data)
     # Asserts the formula is used — exact value depends on rounding
-    assert 540 <= result.score <= 560
+    assert 590 <= result.score <= 600

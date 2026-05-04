@@ -4,17 +4,25 @@ Source of truth: REQUIREMENTS.md FR-INTERVIEW-007, TEST_PLAN.md section 6.4.
 
 Score formula (documented contract — implementation must follow exactly):
 
-    income_score      = min(renda_mensal / (despesas_fixas_mensais + 1), 20.0) * 25.0
-    employment_score  = {formal: 300, autonomo: 200, desempregado: 0}
-    dependents_score  = {0: 100, 1: 80, 2: 60, >=3: 30}
-    debt_score        = -100 if tem_dividas_ativas else +100
+    income_available      = max(renda_mensal - despesas_fixas_mensais, 0)
+    income_capacity_score = min(income_available / 10_000, 1) * 300        # up to 300
+    income_efficiency_score = min(renda_mensal / (despesas_fixas_mensais + 1), 20) / 20 * 200  # up to 200
+    employment_score      = {formal: 250, autonomo: 180, desempregado: 0}  # up to 250
+    dependents_score      = {0: 100, 1: 80, 2: 60, >=3: 30}               # up to 100
+    debt_score            = -150 if tem_dividas_ativas else +150            # ±150
 
-    raw_score = income_score + employment_score + dependents_score + debt_score
+    raw_score = income_capacity_score + income_efficiency_score + employment_score
+                + dependents_score + debt_score
     score     = max(0, min(1000, round(raw_score)))
 
-Maximum possible: min(∞→20)*25 + 300 + 100 + 100 = 1000
-Minimum possible: 0 + 0 + 30 - 100 = -70 → clipped to 0
-Division-by-zero is prevented by (despesas_fixas_mensais + 1).
+Maximum possible: 300 + 200 + 250 + 100 + 150 = 1000
+Minimum possible: 0 + 0 + 0 + 30 - 150 = -120 → clipped to 0
+
+Rationale: The formula separates absolute financial capacity (renda disponível) from
+relative efficiency (renda/despesas ratio). This prevents a profile with moderate income
+and very low expenses from outscoring a profile with much higher absolute capacity, while
+still rewarding efficient financial management. Division-by-zero is prevented by
+(despesas_fixas_mensais + 1).
 """
 
 from dataclasses import dataclass
@@ -61,13 +69,16 @@ class ScoreService:
         """
         from app.schemas.credit import EmploymentType
 
-        income_score = min(
-            data.renda_mensal / (data.despesas_fixas_mensais + 1), 20.0
-        ) * 25.0
+        income_available = max(data.renda_mensal - data.despesas_fixas_mensais, 0)
+        income_capacity_score = min(income_available / 10_000, 1.0) * 300
+
+        income_efficiency_score = (
+            min(data.renda_mensal / (data.despesas_fixas_mensais + 1), 20.0) / 20.0
+        ) * 200
 
         _employment_map = {
-            EmploymentType.FORMAL: 300,
-            EmploymentType.AUTONOMO: 200,
+            EmploymentType.FORMAL: 250,
+            EmploymentType.AUTONOMO: 180,
             EmploymentType.DESEMPREGADO: 0,
         }
         employment_score = _employment_map[data.tipo_emprego]
@@ -81,14 +92,20 @@ class ScoreService:
         else:
             dependents_score = 30
 
-        debt_score = -100 if data.tem_dividas_ativas else 100
+        debt_score = -150 if data.tem_dividas_ativas else 150
 
-        raw_score = income_score + employment_score + dependents_score + debt_score
+        raw_score = (
+            income_capacity_score
+            + income_efficiency_score
+            + employment_score
+            + dependents_score
+            + debt_score
+        )
         final_score = max(0, min(1000, round(raw_score)))
 
         rationale = (
-            f"income={income_score:.2f} employment={employment_score} "
-            f"dependents={dependents_score} debt={debt_score} "
+            f"capacity={income_capacity_score:.2f} efficiency={income_efficiency_score:.2f} "
+            f"employment={employment_score} dependents={dependents_score} debt={debt_score} "
             f"raw={raw_score:.2f} final={final_score}"
         )
 
