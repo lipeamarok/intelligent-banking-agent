@@ -1,0 +1,40 @@
+# Local Python environments
+.venv/
+backend/.venv/
+
+# Secrets and local environment files
+backend/.env
+.env
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+
+# Pytest temporary output files (session-scoped run logs)
+*.log
+backend/.pytest_full.exit
+backend/pytest_full*.txt
+backend/pytest_phase*.txt
+
+# Runtime file lock artifacts
+*.lock
+
+# Python packaging artifacts
+backend/banking_ai_agent_backend.egg-info/
+*.egg-info/
+
+# Frontend dependencies and build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# VS Code workspace-local artifacts
+.vscode/

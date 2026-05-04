@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "banking-ai-agent-backend"
+version = "0.1.0"
+description = "Banco Ágil - Intelligent Banking Agent Backend"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7,<3",
+    "portalocker>=2.7,<3",
+    "langgraph>=1.1.10",
+    "fastapi>=0.104,<1",
+    "uvicorn[standard]>=0.24,<1",
+    "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "description": "Curated semantic evaluation dataset for intent classification, partial-offer confirmation, and ambiguity handling. Used by backend/scripts/evaluate_intent.py.",
+  "intent_cases": [
+    {"id": "intent_credit_limit_01", "message": "quero consultar meu limite", "expected_intent": "credit_limit"},
+    {"id": "intent_credit_limit_02", "message": "meu limite atual qual é?", "expected_intent": "credit_limit"},
+    {"id": "intent_credit_limit_03", "message": "ver limite por favor", "expected_intent": "credit_limit"},
+    {"id": "intent_credit_limit_04", "message": "qual o saldo do meu cartão?", "expected_intent": "credit_limit"},
+    {"id": "intent_credit_limit_05", "message": "consultar limite de crédito", "expected_intent": "credit_limit"},
+    {"id": "intent_credit_increase_01", "message": "quero aumentar meu limite", "expected_intent": "credit_increase"},
+    {"id": "intent_credit_increase_02", "message": "preciso de mais limite no cartão", "expected_intent": "credit_increase"},
+    {"id": "intent_credit_increase_03", "message": "subir limite para 5 mil", "expected_intent": "credit_increase"},
+    {"id": "intent_credit_increase_04", "message": "elevar limite", "expected_intent": "credit_increase"},
+    {"id": "intent_credit_increase_05", "message": "gostaria de pedir aumento", "expected_intent": "credit_increase"},
+    {"id": "intent_exchange_01", "message": "quero a cotação do dólar", "expected_intent": "exchange_quote"},
+    {"id": "intent_exchange_02", "message": "quanto está o euro?", "expected_intent": "exchange_quote"},
+    {"id": "intent_exchange_03", "message": "USD para BRL hoje", "expected_intent": "exchange_quote"},
+    {"id": "intent_exchange_04", "message": "câmbio dólar real", "expected_intent": "exchange_quote"},
+    {"id": "intent_end_01", "message": "quero encerrar o atendimento", "expected_intent": "end_conversation"},
+    {"id": "intent_end_02", "message": "tchau, obrigado", "expected_intent": "end_conversation"},
+    {"id": "intent_end_03", "message": "pode finalizar", "expected_intent": "end_conversation"},
+    {"id": "intent_unknown_01", "message": "asdkfj qwert", "expected_intent": "unknown"},
+    {"id": "intent_unknown_02", "message": "uma piada por favor", "expected_intent": "unknown"},
+    {"id": "intent_unknown_03", "message": "fala sobre o tempo", "expected_intent": "unknown"}
+  ],
+  "confirmation_cases": [
+    {"id": "conf_yes_01", "message": "sim", "expected_value": "accepted"},
+    {"id": "conf_yes_02", "message": "claro, pode ser", "expected_value": "accepted"},
+    {"id": "conf_yes_03", "message": "ok", "expected_value": "accepted"},
+    {"id": "conf_yes_04", "message": "aceito", "expected_value": "accepted"},
+    {"id": "conf_no_01", "message": "não", "expected_value": "declined"},
+    {"id": "conf_no_02", "message": "prefiro não", "expected_value": "declined"},
+    {"id": "conf_no_03", "message": "agora não obrigado", "expected_value": "declined"},
+    {"id": "conf_no_04", "message": "negativo", "expected_value": "declined"}
+  ],
+  "ambiguous_cases": [
+    {"id": "amb_01", "message": "limite", "expected_intent_in": ["credit_limit", "credit_increase", "unknown"], "should_clarify": true},
+    {"id": "amb_02", "message": "cartão", "expected_intent_in": ["credit_limit", "credit_increase", "unknown"], "should_clarify": true},
+    {"id": "amb_03", "message": "valor", "expected_intent_in": ["credit_limit", "credit_increase", "exchange_quote", "unknown"], "should_clarify": true},
+    {"id": "amb_04", "message": "moeda", "expected_intent_in": ["exchange_quote", "unknown"], "should_clarify": true}
+  ]
+}
